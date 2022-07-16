@@ -25,13 +25,17 @@ int wordlist_Check(char *wordlist){
     }
     return(1);
 }
-/*
-int status_Code(char* buff){
-    int status_code{};
+
+void status_Code(char *buff,char *directory){
+    std::cmatch status_code;
     std::regex rule("[0-9]{3}");
     std::regex_search(buff,status_code,rule);
+    if(status_code[0] == "200" || status_code[0] == "301"){
+        std::cout << "Found => /" << directory << " " << status_code[0] << std::endl;
+    }
+    return;
 }
-*/
+
 int main(int argc, char** argv){
     
     if(argc != 4){
@@ -70,7 +74,6 @@ int main(int argc, char** argv){
     std::string word;
     char *directory = new char[30];
     char *request = new char[100];
-
     while(getline(file,word)){
         if((connection =  socket(AF_INET,SOCK_STREAM,0)) < 0){
             std::cout << "[-]Socket creation failed" << std::endl;
@@ -82,7 +85,6 @@ int main(int argc, char** argv){
         }
         strcpy(directory,word.c_str());
         sprintf(request,"GET /%s HTTP/1.1\r\nHost: %s:%s\r\n\r\n",directory,target_host,target_port);
-        std::cout << "Request => " << request << std::endl;
         // Send GET request
         if(send(connection,request,strlen(request),0) < 0 ){
             std::cout << "[-]Couldn't send message" << std::endl;
@@ -93,8 +95,9 @@ int main(int argc, char** argv){
             std::cout << "[-]Could't receive message" << std::endl;
             exit(0);
         }
-        std::cout << "~ Response ~" << std::endl << buffer << std::endl;
-        std::cout << "Size => " << strlen(buffer) << std::endl;
+        //std::cout << "~ Response ~" << std::endl << buffer << std::endl;
+        status_Code(buffer,directory);
+        // Check status code
         close(connection);
     }  
 }   

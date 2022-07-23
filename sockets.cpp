@@ -1,20 +1,18 @@
 #include <stdio.h> // printf, sprintf
-//#include <stdlib.h> // exit
 #include <sys/socket.h> // socket, connect
-//#include <sys/types.h>
 #include <netinet/in.h> // struct sockaddr_in, struct sockaddr
 #include <arpa/inet.h> // inet_pton
-#include <string.h> // memcpy, memset
 #include <unistd.h> // read, write, close
 #include <string>  // string
 #include <iostream> // cout, cin, endl
 #include <fstream> // ifstream
 #include <filesystem> // path(),is_regular_file(), exists()
 #include <cstring>  // c_str()
-#include <regex>
+#include <regex> // regex_search, cmatch, smatch ...
 
+int counter = 0;
 int wordlist_Check(char *wordlist){
-    auto file_path = std::filesystem::path(wordlist);
+    std::string file_path = std::filesystem::path(wordlist);
     if (!std::filesystem::exists(file_path)){
         std::cout << "[-] File " << file_path << " doesn't exist, exiting...";
         return(0);
@@ -25,21 +23,26 @@ int wordlist_Check(char *wordlist){
     }
     return(1);
 }
-
+    
 void status_Code(char *buff,char *directory){
     std::cmatch status_code;
     std::regex rule("[0-9]{3}");
     std::regex_search(buff,status_code,rule);
-    if(status_code[0] == "200" || status_code[0] == "301"){
-        std::cout << "Found => /" << directory << " " << status_code[0] << std::endl;
+    if(status_code[0] == "200"){
+        std::cout << "/" << directory << " 200 FOUND" << std::endl;
+    }
+    else if(status_code[0] == "301"){
+        std::cout << "/" << directory << " 301 PERMANENTLY MOVED" << std::endl;
+    }
+    else if(status_code[0] == "302"){
+        std::cout << "/" << directory << " 302 REDIRECT" << std::endl;
     }
     return;
 }
 
 int main(int argc, char** argv){
-    
     if(argc != 4){
-        std::cout << "Usage: " << argv[0] << " <target> <port> <wordlist>" << std::endl;
+        std::cout << "Usage: " << *argv << " <target> <port> <wordlist>" << std::endl;
         exit(0);
     }
 
@@ -74,11 +77,14 @@ int main(int argc, char** argv){
     std::string word;
     char *directory = new char[30];
     char *request = new char[100];
+    
     while(getline(file,word)){
+        // Create socket
         if((connection =  socket(AF_INET,SOCK_STREAM,0)) < 0){
             std::cout << "[-]Socket creation failed" << std::endl;
             exit(0);
         }
+        // Connect to target
         if(connect(connection,(struct sockaddr*)&target,sizeof(target)) < 0){
             std::cout << "[-]Connection failed" << std::endl;
             exit(0);
@@ -95,9 +101,10 @@ int main(int argc, char** argv){
             std::cout << "[-]Could't receive message" << std::endl;
             exit(0);
         }
-        //std::cout << "~ Response ~" << std::endl << buffer << std::endl;
         status_Code(buffer,directory);
         // Check status code
         close(connection);
+        counter+=1;
     }  
+    std::cout << "Counter => " << counter << std::endl;
 }   
